@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      containers:
+        - name: {{ .Values.name }}
+          image: minio/minio:latest
+          args:
+            - server
+            - --console-address
+            - ":9001"
+            - {{ .Values.container.volumePath }}
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.accessKey }}
+            - name: MINIO_SECRET_KEY
+              value: {{ .Values.secretKey }}
+            - name: TZ
+              value: Asia/Seoul
+            - name: LANG
+              value: ko_KR.utf8
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+              hostPort: 9001
+          volumeMounts:
+            - name: volume1
+              mountPath: {{ .Values.container.volumePath }}
+      volumes:
+        - name: volume1
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}
+
+  strategy:
+    type: Recreate

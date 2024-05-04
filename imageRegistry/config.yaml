@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: image-registry
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOncePod 
+  persistentVolumeReclaimPolicy: Retain 
+  mountOptions:
+    - local
+  local:
+    path: /data/imageRegistry
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - master01 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: image-registry
+spec:
+  accessModes:
+    - ReadWriteOncePod
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-registry-app
+  template:
+    metadata:
+      labels:
+        app: image-registry-app
+    spec:
+      containers:
+        - name: image-registry
+          image: registry:latest
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry 
+          env:
+          - name: REGISTRY_STORAGE_DELETE_ENABLED
+            value: "true"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: image-registry
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-registry
+spec:
+  selector:
+    app: image-registry-app
+  ports:
+    - protocol: TCP
+      port: 5000 
+      targetPort: 5000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: image-registry
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: 700m
+    nginx.ingress.kubernetes.io/client-body-buffer-size: 700m
+    cert-manager.io/cluster-issuer: "letsencrypt"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - reg-com.duckdns.org
+    secretName: image-registry-ssl
+  rules:
+  - host: reg-com.duckdns.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: image-registry
+            port:
+              number: 5000
+

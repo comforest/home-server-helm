@@ -1,0 +1,4 @@
+FROM registry:lastes
+
+RUN mkdir ~/.docker:wq
+
