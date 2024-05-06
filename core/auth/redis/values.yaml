@@ -1,0 +1,8 @@
+name: auth-redis
+replicaCount: 1
+host: comforest.duckdns.org
+port: 6379
+secret:
+  name: comforest
+  password: yappyapp
+
