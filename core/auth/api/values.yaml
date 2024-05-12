@@ -1,0 +1,10 @@
+phase: sandbox
+appName: auth-api
+
+replicaCount: 1
+host: host
+image:
+  repository: image
+  tag: tag
+container:
+  port: 8080
